@@ -1,0 +1,5 @@
+---
+netbox_latest_release:
+  url: https://github.com/netbox-community/netbox/archive/refs/tags/v3.6.5.tar.gz
+  version: 3.6.5
+netbox_install: False

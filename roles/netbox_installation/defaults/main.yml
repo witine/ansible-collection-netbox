@@ -1,0 +1,6 @@
+---
+netbox_user: netbox
+netbox_group: netbox
+netbox_install_target: "{{ netbox_latest_release }}"
+
+netbox_allowed_hosts: []

@@ -1,0 +1,46 @@
+---
+- name: "Gather facts from remote host"
+  ansible.builtin.setup:
+    filter: ansible_local
+
+- name: "Set netbox_install to True if no remote installation was detected"
+  ansible.builtin.set_fact:
+    netbox_install: True
+  when: "ansible_local is not defined or 'witine' is not in ansible_local or 'netbox' is not in ansible_local['witine'] or 'installed_version' is not in ansible_local['witine']['netbox']"
+  
+- name: "Set netbox_install to True if a newer version is available"
+  ansible.builtin.set_fact:
+    netbox_install: True
+  when:
+    - not netbox_install
+    - "netbox_install_target['version'] is version(ansible_local['witine']['netbox']['installed_version'], '>')"
+
+- name: "Ensure that Netbox install target has URL and version information"
+  ansible.builtin.assert:
+    that:
+      - "'url' in netbox_install_target"
+      - "'version' in netbox_install_target"
+  when: netbox_install
+
+- name: "Download and extract Netbox release"
+  ansible.builtin.unarchive:
+    src: "{{ netbox_install_target['url'] }}"
+    dest: "/opt"
+    remote_src: yes
+  when: netbox_install
+
+- name: "Create symbolic link"
+  ansible.builtin.file:
+    src: "/opt/netbox-{{ netbox_install_target['version'] }}"
+    dest: /opt/netbox
+    state: link
+  when: netbox_install
+
+- name: "Delete old Netbox installation"
+  ansible.builtin.file:
+    path: "/opt/netbox-{{ ansible_local['witine']['netbox']['installed_version'] }}"
+    state: absent
+  when:
+    - netbox_install
+    - ansible_local['witine']['netbox']['installed_version'] is defined
+
