@@ -1,0 +1,10 @@
+---
+- name: "Restart netbox service"
+  ansible.builtin.systemd_service:
+    name: netbox
+    state: restarted
+
+- name: "Restart netbox-rq service"
+  ansible.builtin.systemd_service:
+    name: netbox-rq
+    state: restarted

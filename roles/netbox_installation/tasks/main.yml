@@ -37,6 +37,9 @@
     dest: "/opt"
     remote_src: true
   when: netbox_install
+  notify:
+    - "Restart netbox service"
+    - "Restart netbox-rq service"
 
 - name: "Create symbolic link"
   ansible.builtin.file:
@@ -96,11 +99,17 @@
     group: "{{ netbox_group }}"
     mode: '640'
   register: netbox_config
+  notify:
+    - "Restart netbox service"
+    - "Restart netbox-rq service"
 
 - name: "Run Netbox installation/upgrade script"
   ansible.builtin.shell:
     cmd: /opt/netbox/upgrade.sh
   when: netbox_install or netbox_config.changed
+  notify:
+    - "Restart netbox service"
+    - "Restart netbox-rq service"
 
 - name: "Record installed Netbox version"
   community.general.ini_file:
@@ -119,6 +128,8 @@
     owner: "{{ netbox_user }}"
     group: "{{ netbox_group }}"
     mode: '755'
+  notify:
+    - "Restart netbox service"
 
 - name: "Create /etc/systemd/system/{{ item }} file"
   ansible.builtin.template:
