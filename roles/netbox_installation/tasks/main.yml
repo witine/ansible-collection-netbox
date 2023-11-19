@@ -1,19 +1,28 @@
 ---
+- name: "Ensure {{ item }} directory is present"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /etc/ansible
+    - /etc/ansible/facts.d
+
 - name: "Gather facts from remote host"
   ansible.builtin.setup:
     filter: ansible_local
 
 - name: "Set netbox_install to True if no remote installation was detected"
   ansible.builtin.set_fact:
-    netbox_install: True
+    netbox_install: true
+    netbox_present: true
   when: "ansible_local is not defined or 'witine' is not in ansible_local or 'netbox' is not in ansible_local['witine'] or 'installed_version' is not in ansible_local['witine']['netbox']"
-  
+
 - name: "Set netbox_install to True if a newer version is available"
   ansible.builtin.set_fact:
-    netbox_install: True
+    netbox_install: true
   when:
     - not netbox_install
-    - "netbox_install_target['version'] is version(ansible_local['witine']['netbox']['installed_version'], '>')"
+    - "netbox_install_target.version is version(ansible_local['witine']['netbox']['installed_version'], '>')"
 
 - name: "Ensure that Netbox install target has URL and version information"
   ansible.builtin.assert:
@@ -24,14 +33,14 @@
 
 - name: "Download and extract Netbox release"
   ansible.builtin.unarchive:
-    src: "{{ netbox_install_target['url'] }}"
+    src: "{{ netbox_install_target.url }}"
     dest: "/opt"
-    remote_src: yes
+    remote_src: true
   when: netbox_install
 
 - name: "Create symbolic link"
   ansible.builtin.file:
-    src: "/opt/netbox-{{ netbox_install_target['version'] }}"
+    src: "/opt/netbox-{{ netbox_install_target.version }}"
     dest: /opt/netbox
     state: link
   when: netbox_install
@@ -44,3 +53,89 @@
     - netbox_install
     - ansible_local['witine']['netbox']['installed_version'] is defined
 
+- name: "Create {{ netbox_group }} group"
+  ansible.builtin.group:
+    name: "{{ netbox_group }}"
+    gid: "{{ netbox_group_gid }}"
+    system: true
+    state: present
+
+- name: "Create {{ netbox_user }} user"
+  ansible.builtin.user:
+    name: "{{ netbox_user }}"
+    uid: "{{ netbox_user_uid }}"
+    group: "{{ netbox_group }}"
+    comment: "Netbox user"
+    system: true
+    state: present
+
+- name: "Set {{ item }} directory to be owned by {{ netbox_user }}"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ netbox_user }}"
+    group: "{{ netbox_group }}"
+    recurse: true
+    mode: '755'
+    state: directory
+  loop:
+    - /opt/netbox/netbox/media
+    - /opt/netbox/netbox/reports
+    - /opt/netbox/netbox/scripts
+
+- name: "Validate Netbox secret meets requirements"
+  ansible.builtin.assert:
+    that:
+      - netbox_secret_key is defined
+      - netbox_secret_key|length >= 50
+
+- name: "Configure Netbox configuration"
+  ansible.builtin.template:
+    src: configuration.py.j2
+    dest: /opt/netbox/netbox/netbox/configuration.py
+    owner: "{{ netbox_user }}"
+    group: "{{ netbox_group }}"
+    mode: '640'
+  register: netbox_config
+
+- name: "Run Netbox installation/upgrade script"
+  ansible.builtin.shell:
+    cmd: /opt/netbox/upgrade.sh
+  when: netbox_install or netbox_config.changed
+
+- name: "Record installed Netbox version"
+  community.general.ini_file:
+    path: /etc/ansible/facts.d/witine.fact
+    section: netbox
+    option: installed_version
+    value: "{{ netbox_install_target.version }}"
+    mode: 0644
+    backup: false
+  when: netbox_install
+
+- name: "Create /opt/netbox/gunicorn.py file"
+  ansible.builtin.template:
+    src: gunicorn.py.j2
+    dest: /opt/netbox/gunicorn.py
+    owner: "{{ netbox_user }}"
+    group: "{{ netbox_group }}"
+    mode: '755'
+
+- name: "Create /etc/systemd/system/{{ item }} file"
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+  loop:
+    - netbox.service
+    - netbox-rq.service
+    - netbox-housekeeping.service
+    - netbox-housekeeping.timer
+
+- name: "Start {{ item }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - netbox.service
+    - netbox-rq.service
+    - netbox-housekeeping.timer

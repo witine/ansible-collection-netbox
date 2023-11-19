@@ -1,6 +1,62 @@
 ---
 netbox_user: netbox
+netbox_user_uid: 4030
 netbox_group: netbox
+netbox_group_gid: 4030
 netbox_install_target: "{{ netbox_latest_release }}"
 
-netbox_allowed_hosts: []
+netbox_allowed_hosts:
+  - '*'
+
+netbox_database_host: localhost
+netbox_database_port: ''
+netbox_database_user: netbox
+netbox_database_password: ''
+netbox_database_name: netbox
+
+netbox_redis_host: localhost
+netbox_redis_port: 6379
+netbox_redis_user: ''
+netbox_redis_password: ''
+netbox_redis_ssl: false
+netbox_redis_tasks_database: 0
+netbox_redis_caching_database: 1
+
+netbox_admins: []
+netbox_basepath: ''
+
+netbox_cors_allow_all: false
+netbox_cors_origin_whitelist: []
+netbox_cors_origin_regex_whitelist: []
+netbox_csrf_cookie: 'csrftoken'
+
+netbox_debug: false
+
+netbox_localization: false
+netbox_default_locale: 'en-us'
+
+netbox_email_server: 'localhost'
+netbox_email_port: 25
+netbox_email_user: ''
+netbox_email_password: ''
+netbox_from_email: ''
+
+netbox_internal_ips:
+  - 127.0.0.1
+  - '::1'
+
+netbox_login_persistence: false
+netbox_login_required: false
+netbox_logout_redirect: home
+netbox_session_cookie: 'sessionid'
+netbox_metrics: false
+netbox_remote_auth: false
+netbox_remote_auth_backend: netbox.authentication.RemoteUserBackend
+netbox_remote_auth_auto_create: true
+netbox_social_auth_config: {}
+
+netbox_timezone: GMT
+
+netbox_server_host: 127.0.0.1
+netbox_server_port: 8001
+netbox_server_workers: "{{ ansible_processor_nproc * 2 + 1 }}"
