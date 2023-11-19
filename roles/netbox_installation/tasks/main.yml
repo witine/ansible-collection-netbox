@@ -1,5 +1,5 @@
 ---
-- name: "Ensure {{ item }} directory is present"
+- name: "Ensure /etc/ansible/facts.d directory is present"
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -72,7 +72,7 @@
     system: true
     state: present
 
-- name: "Set {{ item }} directory to be owned by {{ netbox_user }}"
+- name: "Configure Netbox directories to be owned by {{ netbox_user }}"
   ansible.builtin.file:
     path: "{{ item }}"
     owner: "{{ netbox_user }}"
@@ -131,7 +131,7 @@
   notify:
     - "Restart netbox service"
 
-- name: "Create /etc/systemd/system/{{ item }} file"
+- name: "Create systemd files"
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: "/etc/systemd/system/{{ item }}"
@@ -141,7 +141,7 @@
     - netbox-housekeeping.service
     - netbox-housekeeping.timer
 
-- name: "Start {{ item }}"
+- name: "Start systemd services"
   ansible.builtin.systemd_service:
     name: "{{ item }}"
     enabled: true
