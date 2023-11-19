@@ -235,3 +235,11 @@ TIME_FORMAT = 'g:i a'
 SHORT_TIME_FORMAT = 'H:i:s'
 DATETIME_FORMAT = 'N j, Y g:i a'
 SHORT_DATETIME_FORMAT = 'Y-m-d H:i'
+
+{% for key, value in netbox_custom_config.items() %}
+{% if value is boolean %}
+{{ key | upper }} = {{ value | capitalize }}
+{% else %}
+{{ key | upper }} = {{ value | tojson(4) }}
+{% endif %}
+{% endfor %}

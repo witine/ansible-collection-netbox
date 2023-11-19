@@ -60,3 +60,5 @@ netbox_timezone: GMT
 netbox_server_host: 127.0.0.1
 netbox_server_port: 8001
 netbox_server_workers: "{{ ansible_processor_nproc * 2 + 1 }}"
+
+netbox_custom_config: {}
